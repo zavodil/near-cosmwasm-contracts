@@ -16,7 +16,8 @@ cargo wasm && wasm-gc ./target/wasm32-unknown-unknown/release/atomic_swap.wasm
 
 Then running `cargo test` will validate we can properly call into that generated data.
 **/
-static WASM: &[u8] = include_bytes!("../../target/wasm32-unknown-unknown/release/atomic_swap.wasm");
+//static WASM: &[u8] = include_bytes!("../../target/wasm32-unknown-unknown/release/atomic_swap.wasm");
+static WASM: &[u8] = include_bytes!("../contract.wasm");
 
 fn preimage() -> String {
     hex::encode(b"this is 32 bytes exact, for you!")
