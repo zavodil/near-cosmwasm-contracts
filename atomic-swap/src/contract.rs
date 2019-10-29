@@ -5,7 +5,7 @@ use snafu::{OptionExt, ResultExt};
 use cosmwasm::errors::{ContractErr, ParseErr, Result, SerializeErr};
 use cosmwasm::serde::{from_slice, to_vec};
 use cosmwasm::storage::Storage;
-use cosmwasm::types::{Coin, CosmosMsg, Params, Response};
+use cosmwasm::types::{CosmosMsg, Params, Response};
 
 #[derive(Serialize, Deserialize)]
 pub struct InitMsg {
@@ -154,7 +154,7 @@ mod tests {
     use super::*;
     use cosmwasm::errors::Error;
     use cosmwasm::mock::MockStorage;
-    use cosmwasm::types::{coin, mock_params};
+    use cosmwasm::types::{Coin, coin, mock_params};
 
     fn preimage() -> String { hex::encode(b"this is 32 bytes exact, for you!") }
     fn real_hash() -> String { hex::encode(&Sha256::digest(&hex::decode(preimage()).unwrap())) }
