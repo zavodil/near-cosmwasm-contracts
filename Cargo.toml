@@ -16,7 +16,10 @@ cranelift = []
 singlepass = []
 
 [workspace]
-members = ["escrow"]
+members = [
+	"atomic-swap",
+	"escrow",
+	]
 
 [profile.release]
 opt-level = 3
