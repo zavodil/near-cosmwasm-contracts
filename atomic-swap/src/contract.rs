@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use snafu::{OptionExt, ResultExt};
 
 use cosmwasm::errors::{ContractErr, ParseErr, Result, SerializeErr};
@@ -89,7 +89,8 @@ fn try_release(params: Params, state: State, preimage: String) -> Result<Respons
     if state.is_expired(&params) {
         return ContractErr {
             msg: "swap expired".to_string(),
-        }.fail();
+        }
+        .fail();
     }
 
     let expected = parse_hex_32(&state.hash)?;
@@ -98,7 +99,8 @@ fn try_release(params: Params, state: State, preimage: String) -> Result<Respons
     if hash.as_slice() != expected.as_slice() {
         return ContractErr {
             msg: "invalid preimage".to_string(),
-        }.fail();
+        }
+        .fail();
     }
 
     let res = Response {
@@ -137,31 +139,40 @@ fn try_refund(params: Params, state: State) -> Result<Response> {
 fn parse_hex_32(data: &str) -> Result<Vec<u8>> {
     use std::error::Error as StdError;
     match hex::decode(data) {
-        Ok(bin) => if bin.len() == 32 {
-            Ok(bin)
-        } else {
-            ContractErr{msg: "hash must be 64 characters".to_string()}.fail()
-        },
-        Err(e) =>
-            ContractErr{msg: format!("parsing hash: {}", e.description())}.fail(),
+        Ok(bin) => {
+            if bin.len() == 32 {
+                Ok(bin)
+            } else {
+                ContractErr {
+                    msg: "hash must be 64 characters".to_string(),
+                }
+                .fail()
+            }
+        }
+        Err(e) => ContractErr {
+            msg: format!("parsing hash: {}", e.description()),
+        }
+        .fail(),
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use cosmwasm::errors::Error;
     use cosmwasm::mock::MockStorage;
-    use cosmwasm::types::{Coin, coin, mock_params};
+    use cosmwasm::types::{coin, mock_params, Coin};
 
-    fn preimage() -> String { hex::encode(b"this is 32 bytes exact, for you!") }
-    fn real_hash() -> String { hex::encode(&Sha256::digest(&hex::decode(preimage()).unwrap())) }
+    fn preimage() -> String {
+        hex::encode(b"this is 32 bytes exact, for you!")
+    }
+    fn real_hash() -> String {
+        hex::encode(&Sha256::digest(&hex::decode(preimage()).unwrap()))
+    }
 
     fn init_msg(height: i64, time: i64, hash: String) -> Vec<u8> {
         to_vec(&InitMsg {
-            hash: hash,
+            hash,
             recipient: String::from("benefits"),
             end_height: height,
             end_time: time,
@@ -208,7 +219,9 @@ mod tests {
         let res = init(&mut store, params, msg);
         match res {
             Ok(_) => panic!("expected error"),
-            Err(Error::ContractErr { msg, .. }) => assert_eq!(msg, "creating expired swap".to_string()),
+            Err(Error::ContractErr { msg, .. }) => {
+                assert_eq!(msg, "creating expired swap".to_string())
+            }
             Err(e) => panic!("unexpected error: {:?}", e),
         }
     }
@@ -221,7 +234,9 @@ mod tests {
         let res = init(&mut store, params, msg);
         match res {
             Ok(_) => panic!("expected error"),
-            Err(Error::ContractErr { msg, .. }) => assert_eq!(msg, "parsing hash: odd number of digits".to_string()),
+            Err(Error::ContractErr { msg, .. }) => {
+                assert_eq!(msg, "parsing hash: odd number of digits".to_string())
+            }
             Err(e) => panic!("unexpected error: {:?}", e),
         }
     }
@@ -250,7 +265,10 @@ mod tests {
         assert_eq!(0, init_res.messages.len());
 
         // cannot release with bad hash
-        let bad_msg = to_vec(&HandleMsg::Release {preimage: hex::encode(b"this is 3x bytes exact, for you!") }).unwrap();
+        let bad_msg = to_vec(&HandleMsg::Release {
+            preimage: hex::encode(b"this is 3x bytes exact, for you!"),
+        })
+        .unwrap();
         let params = mock_params_height(
             "anyone",
             &coin("0", "earth"),
@@ -266,7 +284,10 @@ mod tests {
         }
 
         // cannot release it when expired
-        let msg = to_vec(&HandleMsg::Release {preimage: preimage() }).unwrap();
+        let msg = to_vec(&HandleMsg::Release {
+            preimage: preimage(),
+        })
+        .unwrap();
         let params = mock_params_height(
             "anyone",
             &coin("0", "earth"),

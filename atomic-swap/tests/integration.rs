@@ -1,12 +1,12 @@
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 use cosmwasm::mock::MockStorage;
-use cosmwasm::storage::Storage;
 use cosmwasm::serde::{from_slice, to_vec};
+use cosmwasm::storage::Storage;
 use cosmwasm::types::{coin, mock_params, Coin, ContractResult, CosmosMsg, Params};
 use cosmwasm_vm::{call_handle, call_init, Instance};
 
-use atomic_swap::contract::{CONFIG_KEY, HandleMsg, InitMsg, State};
+use atomic_swap::contract::{HandleMsg, InitMsg, State, CONFIG_KEY};
 
 /**
 This integration test tries to run and call the generated wasm.
@@ -18,8 +18,12 @@ Then running `cargo test` will validate we can properly call into that generated
 **/
 static WASM: &[u8] = include_bytes!("../../target/wasm32-unknown-unknown/release/atomic_swap.wasm");
 
-fn preimage() -> String { hex::encode(b"this is 32 bytes exact, for you!") }
-fn real_hash() -> String { hex::encode(&Sha256::digest(&hex::decode(preimage()).unwrap())) }
+fn preimage() -> String {
+    hex::encode(b"this is 32 bytes exact, for you!")
+}
+fn real_hash() -> String {
+    hex::encode(&Sha256::digest(&hex::decode(preimage()).unwrap()))
+}
 
 fn init_msg(height: i64, time: i64, hash: String) -> Vec<u8> {
     to_vec(&InitMsg {
@@ -28,7 +32,7 @@ fn init_msg(height: i64, time: i64, hash: String) -> Vec<u8> {
         end_height: height,
         end_time: time,
     })
-        .unwrap()
+    .unwrap()
 }
 
 fn mock_params_height(
@@ -73,7 +77,9 @@ fn cannot_initialize_expired() {
     let res = call_init(&mut instance, &params, &msg).unwrap();
     match res {
         ContractResult::Ok(_) => panic!("expected error"),
-        ContractResult::Err(msg) => assert_eq!(msg, "Contract error: creating expired swap".to_string()),
+        ContractResult::Err(msg) => {
+            assert_eq!(msg, "Contract error: creating expired swap".to_string())
+        }
     }
 }
 
@@ -86,7 +92,10 @@ fn cannot_initialize_invalid_hash() {
     let res = call_init(&mut instance, &params, &msg).unwrap();
     match res {
         ContractResult::Ok(_) => panic!("expected error"),
-        ContractResult::Err(msg) => assert_eq!(msg, "Contract error: parsing hash: odd number of digits".to_string()),
+        ContractResult::Err(msg) => assert_eq!(
+            msg,
+            "Contract error: parsing hash: odd number of digits".to_string()
+        ),
     }
 }
 
@@ -99,7 +108,9 @@ fn fails_on_bad_init_data() {
     let res = call_init(&mut instance, &params, &bad_msg).unwrap();
     match res {
         ContractResult::Ok(_) => panic!("expected error"),
-        ContractResult::Err(msg) => assert_eq!(msg, "Parse error: missing field `hash`".to_string()),
+        ContractResult::Err(msg) => {
+            assert_eq!(msg, "Parse error: missing field `hash`".to_string())
+        }
     }
 }
 
@@ -115,7 +126,10 @@ fn handle_approve() {
     assert_eq!(0, init_res.messages.len());
 
     // cannot release with bad hash
-    let bad_msg = to_vec(&HandleMsg::Release {preimage: hex::encode(b"this is 3x bytes exact, for you!") }).unwrap();
+    let bad_msg = to_vec(&HandleMsg::Release {
+        preimage: hex::encode(b"this is 3x bytes exact, for you!"),
+    })
+    .unwrap();
     let params = mock_params_height(
         "anyone",
         &coin("0", "earth"),
@@ -130,7 +144,10 @@ fn handle_approve() {
     }
 
     // cannot release it when expired
-    let msg = to_vec(&HandleMsg::Release {preimage: preimage() }).unwrap();
+    let msg = to_vec(&HandleMsg::Release {
+        preimage: preimage(),
+    })
+    .unwrap();
     let params = mock_params_height(
         "anyone",
         &coin("0", "earth"),
@@ -195,7 +212,9 @@ fn handle_refund() {
     let handle_res = call_handle(&mut instance, &params, &msg).unwrap();
     match handle_res {
         ContractResult::Ok(_) => panic!("expected error"),
-        ContractResult::Err(msg) => assert_eq!(msg, "Contract error: swap not yet expired".to_string()),
+        ContractResult::Err(msg) => {
+            assert_eq!(msg, "Contract error: swap not yet expired".to_string())
+        }
     }
 
     // anyone can release after expiration
