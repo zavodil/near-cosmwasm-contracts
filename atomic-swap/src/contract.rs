@@ -80,12 +80,12 @@ pub fn handle<T: Storage>(store: &mut T, params: Params, msg: Vec<u8>) -> Result
     let state: State = from_slice(&data).context(ParseErr {})?;
 
     match msg {
-        HandleMsg::Release { preimage } => try_approve(params, state, preimage),
+        HandleMsg::Release { preimage } => try_release(params, state, preimage),
         HandleMsg::Refund {} => try_refund(params, state),
     }
 }
 
-fn try_approve(params: Params, state: State, preimage: String) -> Result<Response> {
+fn try_release(params: Params, state: State, preimage: String) -> Result<Response> {
     if state.is_expired(&params) {
         return ContractErr {
             msg: "swap expired".to_string(),
@@ -157,7 +157,7 @@ mod tests {
     use cosmwasm::types::{coin, mock_params};
 
     fn preimage() -> String { hex::encode(b"this is 32 bytes exact, for you!") }
-    fn real_hash() -> String { hex::encode(&Sha256::digest(&preimage().as_bytes())) }
+    fn real_hash() -> String { hex::encode(&Sha256::digest(&hex::decode(preimage()).unwrap())) }
 
     fn init_msg(height: i64, time: i64, hash: String) -> Vec<u8> {
         to_vec(&InitMsg {
@@ -239,159 +239,129 @@ mod tests {
         }
     }
 
-//    #[test]
-//    fn handle_approve() {
-//        let mut store = MockStorage::new();
-//
-//        // initialize the store
-//        let msg = init_msg(1000, 0);
-//        let params = mock_params_height("creator", &coin("1000", "earth"), &[], 876, 0);
-//        let init_res = init(&mut store, params, msg).unwrap();
-//        assert_eq!(0, init_res.messages.len());
-//
-//        // beneficiary cannot release it
-//        let msg = to_vec(&HandleMsg::Approve { quantity: None }).unwrap();
-//        let params = mock_params_height(
-//            "beneficiary",
-//            &coin("0", "earth"),
-//            &coin("1000", "earth"),
-//            900,
-//            0,
-//        );
-//        let handle_res = handle(&mut store, params, msg.clone());
-//        match handle_res {
-//            Ok(_) => panic!("expected error"),
-//            Err(Error::Unauthorized { .. }) => {}
-//            Err(e) => panic!("unexpected error: {:?}", e),
-//        }
-//
-//        // verifier cannot release it when expired
-//        let params = mock_params_height(
-//            "verifies",
-//            &coin("0", "earth"),
-//            &coin("1000", "earth"),
-//            1100,
-//            0,
-//        );
-//        let handle_res = handle(&mut store, params, msg.clone());
-//        match handle_res {
-//            Ok(_) => panic!("expected error"),
-//            Err(Error::ContractErr { msg, .. }) => assert_eq!(msg, "escrow expired".to_string()),
-//            Err(e) => panic!("unexpected error: {:?}", e),
-//        }
-//
-//        // complete release by verfier, before expiration
-//        let params = mock_params_height(
-//            "verifies",
-//            &coin("0", "earth"),
-//            &coin("1000", "earth"),
-//            999,
-//            0,
-//        );
-//        let handle_res = handle(&mut store, params, msg.clone()).unwrap();
-//        assert_eq!(1, handle_res.messages.len());
-//        let msg = handle_res.messages.get(0).expect("no message");
-//        match &msg {
-//            CosmosMsg::Send {
-//                from_address,
-//                to_address,
-//                amount,
-//            } => {
-//                assert_eq!("cosmos2contract", from_address);
-//                assert_eq!("benefits", to_address);
-//                assert_eq!(1, amount.len());
-//                let coin = amount.get(0).expect("No coin");
-//                assert_eq!(coin.denom, "earth");
-//                assert_eq!(coin.amount, "1000");
-//            }
-//            _ => panic!("Unexpected message type"),
-//        }
-//
-//        // partial release by verfier, before expiration
-//        let partial_msg = to_vec(&HandleMsg::Approve {
-//            quantity: Some(coin("500", "earth")),
-//        })
-//        .unwrap();
-//        let params = mock_params_height(
-//            "verifies",
-//            &coin("0", "earth"),
-//            &coin("1000", "earth"),
-//            999,
-//            0,
-//        );
-//        let handle_res = handle(&mut store, params, partial_msg).unwrap();
-//        assert_eq!(1, handle_res.messages.len());
-//        let msg = handle_res.messages.get(0).expect("no message");
-//        match &msg {
-//            CosmosMsg::Send {
-//                from_address,
-//                to_address,
-//                amount,
-//            } => {
-//                assert_eq!("cosmos2contract", from_address);
-//                assert_eq!("benefits", to_address);
-//                assert_eq!(1, amount.len());
-//                let coin = amount.get(0).expect("No coin");
-//                assert_eq!(coin.denom, "earth");
-//                assert_eq!(coin.amount, "500");
-//            }
-//            _ => panic!("Unexpected message type"),
-//        }
-//    }
-//
-//    #[test]
-//    fn handle_refund() {
-//        let mut store = MockStorage::new();
-//
-//        // initialize the store
-//        let msg = init_msg(1000, 0);
-//        let params = mock_params_height("creator", &coin("1000", "earth"), &[], 876, 0);
-//        let init_res = init(&mut store, params, msg).unwrap();
-//        assert_eq!(0, init_res.messages.len());
-//
-//        // cannot release when unexpired
-//        let msg = to_vec(&HandleMsg::Refund {}).unwrap();
-//        let params = mock_params_height(
-//            "anybody",
-//            &coin("0", "earth"),
-//            &coin("1000", "earth"),
-//            800,
-//            0,
-//        );
-//        let handle_res = handle(&mut store, params, msg.clone());
-//        match handle_res {
-//            Ok(_) => panic!("expected error"),
-//            Err(Error::ContractErr { msg, .. }) => {
-//                assert_eq!(msg, "escrow not yet expired".to_string())
-//            }
-//            Err(e) => panic!("unexpected error: {:?}", e),
-//        }
-//
-//        // anyone can release after expiration
-//        let params = mock_params_height(
-//            "anybody",
-//            &coin("0", "earth"),
-//            &coin("1000", "earth"),
-//            1001,
-//            0,
-//        );
-//        let handle_res = handle(&mut store, params, msg.clone()).unwrap();
-//        assert_eq!(1, handle_res.messages.len());
-//        let msg = handle_res.messages.get(0).expect("no message");
-//        match &msg {
-//            CosmosMsg::Send {
-//                from_address,
-//                to_address,
-//                amount,
-//            } => {
-//                assert_eq!("cosmos2contract", from_address);
-//                assert_eq!("creator", to_address);
-//                assert_eq!(1, amount.len());
-//                let coin = amount.get(0).expect("No coin");
-//                assert_eq!(coin.denom, "earth");
-//                assert_eq!(coin.amount, "1000");
-//            }
-//            _ => panic!("Unexpected message type"),
-//        }
-//    }
+    #[test]
+    fn handle_approve() {
+        let mut store = MockStorage::new();
+
+        // initialize the store
+        let msg = init_msg(1000, 600, real_hash());
+        let params = mock_params_height("creator", &coin("1000", "earth"), &[], 876, 0);
+        let init_res = init(&mut store, params, msg).unwrap();
+        assert_eq!(0, init_res.messages.len());
+
+        // cannot release with bad hash
+        let bad_msg = to_vec(&HandleMsg::Release {preimage: hex::encode(b"this is 3x bytes exact, for you!") }).unwrap();
+        let params = mock_params_height(
+            "anyone",
+            &coin("0", "earth"),
+            &coin("1000", "earth"),
+            900,
+            30,
+        );
+        let handle_res = handle(&mut store, params, bad_msg);
+        match handle_res {
+            Ok(_) => panic!("expected error"),
+            Err(Error::ContractErr { msg, .. }) => assert_eq!(msg, "invalid preimage".to_string()),
+            Err(e) => panic!("unexpected error: {:?}", e),
+        }
+
+        // cannot release it when expired
+        let msg = to_vec(&HandleMsg::Release {preimage: preimage() }).unwrap();
+        let params = mock_params_height(
+            "anyone",
+            &coin("0", "earth"),
+            &coin("1000", "earth"),
+            1100,
+            0,
+        );
+        let handle_res = handle(&mut store, params, msg.clone());
+        match handle_res {
+            Ok(_) => panic!("expected error"),
+            Err(Error::ContractErr { msg, .. }) => assert_eq!(msg, "swap expired".to_string()),
+            Err(e) => panic!("unexpected error: {:?}", e),
+        }
+
+        // release with proper preimage, before expiration
+        let params = mock_params_height(
+            "random dude",
+            &coin("15", "earth"),
+            &coin("1000", "earth"),
+            999,
+            0,
+        );
+        let handle_res = handle(&mut store, params, msg.clone()).unwrap();
+        assert_eq!(1, handle_res.messages.len());
+        let msg = handle_res.messages.get(0).expect("no message");
+        match &msg {
+            CosmosMsg::Send {
+                from_address,
+                to_address,
+                amount,
+            } => {
+                assert_eq!("cosmos2contract", from_address);
+                assert_eq!("benefits", to_address);
+                assert_eq!(1, amount.len());
+                let coin = amount.get(0).expect("No coin");
+                assert_eq!(coin.denom, "earth");
+                assert_eq!(coin.amount, "1000");
+            }
+            _ => panic!("Unexpected message type"),
+        }
+    }
+
+    #[test]
+    fn handle_refund() {
+        let mut store = MockStorage::new();
+
+        // initialize the store
+        let msg = init_msg(1000, 0, real_hash());
+        let params = mock_params_height("creator", &coin("1000", "earth"), &[], 876, 0);
+        let init_res = init(&mut store, params, msg).unwrap();
+        assert_eq!(0, init_res.messages.len());
+
+        // cannot release when unexpired
+        let msg = to_vec(&HandleMsg::Refund {}).unwrap();
+        let params = mock_params_height(
+            "anybody",
+            &coin("0", "earth"),
+            &coin("1000", "earth"),
+            800,
+            0,
+        );
+        let handle_res = handle(&mut store, params, msg.clone());
+        match handle_res {
+            Ok(_) => panic!("expected error"),
+            Err(Error::ContractErr { msg, .. }) => {
+                assert_eq!(msg, "swap not yet expired".to_string())
+            }
+            Err(e) => panic!("unexpected error: {:?}", e),
+        }
+
+        // anyone can release after expiration
+        let params = mock_params_height(
+            "anybody",
+            &coin("0", "earth"),
+            &coin("1000", "earth"),
+            1001,
+            0,
+        );
+        let handle_res = handle(&mut store, params, msg.clone()).unwrap();
+        assert_eq!(1, handle_res.messages.len());
+        let msg = handle_res.messages.get(0).expect("no message");
+        match &msg {
+            CosmosMsg::Send {
+                from_address,
+                to_address,
+                amount,
+            } => {
+                assert_eq!("cosmos2contract", from_address);
+                assert_eq!("creator", to_address);
+                assert_eq!(1, amount.len());
+                let coin = amount.get(0).expect("No coin");
+                assert_eq!(coin.denom, "earth");
+                assert_eq!(coin.amount, "1000");
+            }
+            _ => panic!("Unexpected message type"),
+        }
+    }
 }
