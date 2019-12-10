@@ -9,6 +9,33 @@ use cosmwasm::serde::from_slice;
 use cosmwasm::storage::Storage;
 use cosmwasm::types::{Params, Response};
 
+pub struct NamespacedStorage<'a, T: Storage> {
+    store: &'a mut T,
+    prefix_impl: Vec<u8>,
+}
+
+impl<'a, T> NamespacedStorage<'a, T> where T: Storage {
+    pub fn new(store: &'a mut T, prefix: &[u8]) -> Self {
+        NamespacedStorage {
+            store,
+            prefix_impl: [&[prefix.len() as u8], prefix].concat(),
+        }
+    }
+}
+
+// We cannot implement Storage because of lifetime issues in set()
+impl<'a, T> Storage for NamespacedStorage<'a, T> where T: Storage {
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        let full_key = [&self.prefix_impl, key].concat();
+        self.store.get(&full_key)
+    }
+
+    fn set(&'a mut self, key: &[u8], value: &[u8]) {
+        let full_key = [&self.prefix_impl, key].concat();
+        self.store.set(&full_key, value);
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct InitialBalance {
     pub address: String,
