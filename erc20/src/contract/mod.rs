@@ -30,7 +30,7 @@ impl<'a, T> Storage for NamespacedStorage<'a, T> where T: Storage {
         self.store.get(&full_key)
     }
 
-    fn set(&'a mut self, key: &[u8], value: &[u8]) {
+    fn set(&mut self, key: &[u8], value: &[u8]) {
         let full_key = [&self.prefix_impl, key].concat();
         self.store.set(&full_key, value);
     }
