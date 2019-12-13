@@ -45,6 +45,29 @@ fn get_allowance<T: Storage>(store: &T, owner: &str, spender: &str) -> u128 {
     return read_u128(store, &key).unwrap();
 }
 
+mod namespace {
+    use super::*;
+
+    #[test]
+    fn works() {
+        let mut store = MockStorage::new();
+
+        // use a block to release prefix at end, and release it's "write lock" on store
+        {
+            let mut prefix = NamespacedStorage::new(&mut store, b"foo");
+            prefix.set(b"bar", b"some data");
+            let val = prefix.get(b"bar");
+            assert_eq!(val, Some(b"some data".to_vec()));
+        }
+
+        // now check the underlying storage
+        let val = store.get(b"bar");
+        assert_eq!(val, None);
+        let val = store.get(b"\x03foobar");
+        assert_eq!(val, Some(b"some data".to_vec()));
+    }
+}
+
 mod init {
     use super::*;
 
