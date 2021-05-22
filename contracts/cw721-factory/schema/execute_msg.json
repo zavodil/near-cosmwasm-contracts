@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExecuteMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "create_nft"
+      ],
+      "properties": {
+        "create_nft": {
+          "type": "object",
+          "required": [
+            "name",
+            "reply",
+            "symbol"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "reply": {
+              "$ref": "#/definitions/ReplyOn"
+            },
+            "symbol": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "ReplyOn": {
+      "description": "Use this to define when the contract gets a response callback. If you only need it for errors or success you can select just those in order to save gas.",
+      "type": "string",
+      "enum": [
+        "always",
+        "error",
+        "success"
+      ]
+    }
+  }
+}

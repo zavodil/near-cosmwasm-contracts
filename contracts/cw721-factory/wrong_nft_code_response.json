@@ -1,0 +1,1 @@
+Error: rpc error: code = InvalidArgument desc = failed to execute message; message index: 0: dispatch: submessages: reply: Create NFT Failed: execute wasm contract failed: invalid request

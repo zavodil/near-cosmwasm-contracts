@@ -1,9 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{Addr, Storage, Uint64};
-use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
-use cw_storage_plus::{Map, Item};
+use cosmwasm_std::{Addr, Uint64};
+use cw_storage_plus::{Item, Map, U64Key};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
@@ -12,15 +11,16 @@ pub struct Config {
 
 pub const CONFIG: Item<Config> = Item::new("config");
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub struct NftData {
+    pub contract_addr: Addr,
     pub name: String,
-    pub symbol: String
+    pub symbol: String,
 }
 
 // NFT_SEQ is nft id counter
 pub const NFT_SEQ: Item<Uint64> = Item::new("nft_seq");
 
 // NFTs keeps nft information indexed by id
-pub const NFTS: Map<Uint64, NftData> = Map::new("nfts");
-
+pub const NFTS: Map<U64Key, NftData> = Map::new("nfts");

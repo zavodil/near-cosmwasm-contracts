@@ -1,0 +1,72 @@
+{
+  "height": "89405",
+  "txhash": "95F276E284FD211366E4E0DA454D8579771745280AEF5AE3DC45020A2323C15E",
+  "data": "0A090A0765786563757465",
+  "raw_log": "[{\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"execute\"},{\"key\":\"module\",\"value\":\"wasm\"},{\"key\":\"signer\",\"value\":\"tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc\"},{\"key\":\"code_id\",\"value\":\"2\"},{\"key\":\"contract_address\",\"value\":\"tgrade16aalesrmk6sgq6gmcpny2kacckun6ugq9zvkea\"},{\"key\":\"module\",\"value\":\"wasm\"},{\"key\":\"signer\",\"value\":\"tgrade1vgyq398fcht7fpjsm8e5k9ndc60spn8qhcqjcn\"},{\"key\":\"contract_address\",\"value\":\"tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc\"}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"contract_address\",\"value\":\"tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc\"},{\"key\":\"action\",\"value\":\"create_nft\"},{\"key\":\"nft_id\",\"value\":\"0\"},{\"key\":\"contract_address\",\"value\":\"tgrade16aalesrmk6sgq6gmcpny2kacckun6ugq9zvkea\"}]}]}]",
+  "logs": [
+    {
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "execute"
+            },
+            {
+              "key": "module",
+              "value": "wasm"
+            },
+            {
+              "key": "signer",
+              "value": "tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc"
+            },
+            {
+              "key": "code_id",
+              "value": "2"
+            },
+            {
+              "key": "contract_address",
+              "value": "tgrade16aalesrmk6sgq6gmcpny2kacckun6ugq9zvkea"
+            },
+            {
+              "key": "module",
+              "value": "wasm"
+            },
+            {
+              "key": "signer",
+              "value": "tgrade1vgyq398fcht7fpjsm8e5k9ndc60spn8qhcqjcn"
+            },
+            {
+              "key": "contract_address",
+              "value": "tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc"
+            }
+          ]
+        },
+        {
+          "type": "wasm",
+          "attributes": [
+            {
+              "key": "contract_address",
+              "value": "tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc"
+            },
+            {
+              "key": "action",
+              "value": "create_nft"
+            },
+            {
+              "key": "nft_id",
+              "value": "0"
+            },
+            {
+              "key": "contract_address",
+              "value": "tgrade16aalesrmk6sgq6gmcpny2kacckun6ugq9zvkea"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "gas_wanted": "225438",
+  "gas_used": "182754"
+}

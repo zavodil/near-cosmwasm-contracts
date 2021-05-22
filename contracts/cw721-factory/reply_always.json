@@ -1,0 +1,88 @@
+{
+  "height": "89448",
+  "txhash": "C4E536F125EB9B0DCB30654238A3A848B2D8F44F92526DD539AF03622027245A",
+  "data": "0A090A0765786563757465",
+  "raw_log": "[{\"events\":[{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"execute\"},{\"key\":\"module\",\"value\":\"wasm\"},{\"key\":\"signer\",\"value\":\"tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc\"},{\"key\":\"code_id\",\"value\":\"2\"},{\"key\":\"contract_address\",\"value\":\"tgrade1raemppcku64lqar7k8m7mprpptdknhhnjlzegl\"},{\"key\":\"module\",\"value\":\"wasm\"},{\"key\":\"signer\",\"value\":\"tgrade1vgyq398fcht7fpjsm8e5k9ndc60spn8qhcqjcn\"},{\"key\":\"contract_address\",\"value\":\"tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc\"}]},{\"type\":\"wasm\",\"attributes\":[{\"key\":\"contract_address\",\"value\":\"tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc\"},{\"key\":\"action\",\"value\":\"create_nft\"},{\"key\":\"nft_id\",\"value\":\"0\"},{\"key\":\"contract_address\",\"value\":\"tgrade1raemppcku64lqar7k8m7mprpptdknhhnjlzegl\"},{\"key\":\"contract_address\",\"value\":\"tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc\"},{\"key\":\"action\",\"value\":\"reply_create_nft\"},{\"key\":\"nft_id\",\"value\":\"0\"},{\"key\":\"created_contract_addr\",\"value\":\"tgrade1raemppcku64lqar7k8m7mprpptdknhhnjlzegl\"}]}]}]",
+  "logs": [
+    {
+      "events": [
+        {
+          "type": "message",
+          "attributes": [
+            {
+              "key": "action",
+              "value": "execute"
+            },
+            {
+              "key": "module",
+              "value": "wasm"
+            },
+            {
+              "key": "signer",
+              "value": "tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc"
+            },
+            {
+              "key": "code_id",
+              "value": "2"
+            },
+            {
+              "key": "contract_address",
+              "value": "tgrade1raemppcku64lqar7k8m7mprpptdknhhnjlzegl"
+            },
+            {
+              "key": "module",
+              "value": "wasm"
+            },
+            {
+              "key": "signer",
+              "value": "tgrade1vgyq398fcht7fpjsm8e5k9ndc60spn8qhcqjcn"
+            },
+            {
+              "key": "contract_address",
+              "value": "tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc"
+            }
+          ]
+        },
+        {
+          "type": "wasm",
+          "attributes": [
+            {
+              "key": "contract_address",
+              "value": "tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc"
+            },
+            {
+              "key": "action",
+              "value": "create_nft"
+            },
+            {
+              "key": "nft_id",
+              "value": "0"
+            },
+            {
+              "key": "contract_address",
+              "value": "tgrade1raemppcku64lqar7k8m7mprpptdknhhnjlzegl"
+            },
+            {
+              "key": "contract_address",
+              "value": "tgrade1vp5vrl0wacxlkh03xkcvfh6q9tcrw4qrksuzwc"
+            },
+            {
+              "key": "action",
+              "value": "reply_create_nft"
+            },
+            {
+              "key": "nft_id",
+              "value": "0"
+            },
+            {
+              "key": "created_contract_addr",
+              "value": "tgrade1raemppcku64lqar7k8m7mprpptdknhhnjlzegl"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "gas_wanted": "293222",
+  "gas_used": "234896"
+}
