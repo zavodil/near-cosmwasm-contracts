@@ -24,7 +24,7 @@ pub fn instantiate(
     };
     CONFIG.save(deps.storage, &config)?;
 
-    NFT_SEQ.save(deps.storage, &Uint64::zero())?;
+    NFT_SEQ.save(deps.storage, &Uint64::from(11))?;
 
     Ok(Response::default())
 }
@@ -57,14 +57,17 @@ pub fn execute_create_nft(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
+    // save temporary nft data
     let nft_id = NFT_SEQ.load(deps.storage)?;
     let nft_data = NftData {
+        // contract_addr will be updated on successful reply from nft contract
         contract_addr: Addr::unchecked("unchecked"),
         name: name.clone(),
         symbol: symbol.clone(),
     };
     NFTS.save(deps.storage, nft_id.u64().into(), &nft_data)?;
 
+    // wrap up sub message
     let instantiate_nft_msg = cw721_base::msg::InstantiateMsg {
         name,
         symbol,
@@ -94,10 +97,38 @@ pub fn execute_create_nft(
     Ok(res)
 }
 
+/**
+Sub message signals
+
+0 - 10 reserved reply identification
+10+ Create NFT IDs
+ */
+
+pub const OPERATION_ZERO: u64 = 0;
+pub const OPERATION_ONE: u64 = 1;
+pub const OPERATION_TWO: u64 = 2;
+
 // This just stores the result for future query
 #[entry_point]
 pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
-    reply_create_nft(deps, env, msg.id.into(), msg.result)
+    match msg.id {
+        OPERATION_ZERO => reply_operation(deps, env, msg.id, res),
+        1..=10 => reply_operation(deps, env, msg.id, res),
+        _ => reply_create_nft(deps, env, msg.id.into(), msg.result),
+    }
+}
+
+pub fn reply_operation(
+    _deps: DepsMut,
+    _env: Env,
+    operation_id: u64,
+    _res: ContractResult<SubcallResponse>,
+) -> Result<Response, ContractError> {
+    let mut res = Response::new();
+    res.add_attribute("action", "reply_some_operation");
+    res.add_attribute("operation_id", operation_id);
+
+    Ok(res)
 }
 
 pub fn reply_create_nft(
