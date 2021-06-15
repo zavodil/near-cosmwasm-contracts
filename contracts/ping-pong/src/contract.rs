@@ -1,8 +1,8 @@
-use cosmwasm_std::{
-    entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-};
+use cosmwasm_std::{entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint64, attr};
 
 use crate::error::ContractError;
+use crate::msg::InstantiateMsg;
+use crate::state::PING_COUNT;
 
 // Note, you can use StdResult in some functions where you do not
 // make use of the custom errors
@@ -13,7 +13,11 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    unimplemented!()
+    PING_COUNT.save(deps.storage, &Uint64::zero())?;
+
+    let mut res = Response::new();
+    res.attributes.push(attr("action", "instantiate"));
+    Ok(res)
 }
 
 // And declare a custom Error variant for the ones where you will want to make use of it
