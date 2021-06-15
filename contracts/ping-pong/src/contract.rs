@@ -1,7 +1,7 @@
 use cosmwasm_std::{entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint64, attr};
 
 use crate::error::ContractError;
-use crate::msg::InstantiateMsg;
+use crate::msg::{InstantiateMsg, ExecuteMsg};
 use crate::state::PING_COUNT;
 
 // Note, you can use StdResult in some functions where you do not
@@ -10,13 +10,12 @@ use crate::state::PING_COUNT;
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
-    msg: InstantiateMsg,
+    _info: MessageInfo,
+    _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     PING_COUNT.save(deps.storage, &Uint64::zero())?;
 
     let mut res = Response::new();
-    res.attributes.push(attr("action", "instantiate"));
     Ok(res)
 }
 
@@ -25,10 +24,19 @@ pub fn instantiate(
 pub fn execute(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
-    msg: ExecuteMsg,
+    _info: MessageInfo,
+    _msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    unimplemented!()
+    let mut count = Uint64::zero();
+    PING_COUNT.update(deps.storage, |exists| {
+        count = exists + 1;
+        Ok(count)
+    })?;
+
+    let mut res = Response::new();
+    res.attributes.push(attr("ping_count", count));
+    res.data = Some(to_binary("pong")?);
+    Ok(res)
 }
 
 
