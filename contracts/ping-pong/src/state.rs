@@ -1,8 +1,5 @@
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
-use cosmwasm_std::{Addr, Uint64};
-use cw_storage_plus::{Item, U64Key};
+use cosmwasm_std::Uint64;
+use cw_storage_plus::Item;
 
 /*
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
