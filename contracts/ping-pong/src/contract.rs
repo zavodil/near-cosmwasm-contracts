@@ -1,7 +1,7 @@
 use cosmwasm_std::{entry_point, to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint64, attr};
 
 use crate::error::ContractError;
-use crate::msg::{InstantiateMsg, ExecuteMsg};
+use crate::msg::{InstantiateMsg, ExecuteMsg, QueryMsg};
 use crate::state::PING_COUNT;
 
 // Note, you can use StdResult in some functions where you do not
@@ -41,8 +41,9 @@ pub fn execute(
 
 
 #[entry_point]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    unimplemented!()
+pub fn query(deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
+    let count = PING_COUNT.load(deps.storage)?;
+    Ok(to_binary(&count)?)
 }
 
 #[cfg(test)]
