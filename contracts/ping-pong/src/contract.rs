@@ -27,13 +27,19 @@ pub fn instantiate(
 #[entry_point]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _msg: ExecuteMsg,
+    env: Env,
+    info: MessageInfo,
+    msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    match msg {
+        ExecuteMsg::Ping {} => ping(deps, env, info),
+    }
+}
+
+pub fn ping(deps: DepsMut, _env: Env, _info: MessageInfo) -> Result<Response, ContractError> {
     let mut count = Uint64::zero();
     let res: Result<Uint64, StdError> = PING_COUNT.update(deps.storage, |exists| {
-        count = exists.add(Uint64::from(1u16));
+        count = exists.add(Uint64::from(1u8));
         Ok(count)
     });
     res?;
@@ -63,7 +69,6 @@ mod tests {
         let msg = InstantiateMsg {};
         let info = mock_info("creator", &[]);
 
-        // we can just call .unwrap() to assert this was a success
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
 
@@ -71,5 +76,29 @@ mod tests {
         let res = query(deps.as_ref(), mock_env(), QueryMsg::GetCount {}).unwrap();
         let value: Uint64 = from_binary(&res).unwrap();
         assert_eq!(Uint64::zero(), value);
+    }
+
+    #[test]
+    fn test_ping() {
+        let mut deps = mock_dependencies(&[]);
+
+        let msg = InstantiateMsg {};
+        let info = mock_info("creator", &[]);
+
+        // instantiate
+        instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+
+        let msg = ExecuteMsg::Ping {};
+        let res = execute(deps.as_mut(), mock_env(), info.clone(), msg.clone()).unwrap();
+        assert_eq!(res.attributes.len(), 1);
+        assert_eq!(res.attributes, vec![attr("ping_count", 1)]);
+        let data: String = from_binary(&res.data.unwrap()).unwrap();
+        assert_eq!(data, "pong");
+
+        let res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(res.attributes.len(), 1);
+        assert_eq!(res.attributes, vec![attr("ping_count", 2)]);
+        let data: String = from_binary(&res.data.unwrap()).unwrap();
+        assert_eq!(data, "pong");
     }
 }
