@@ -1,342 +1,242 @@
-use cosmwasm_std::{
-    entry_point, to_binary, Addr, BankMsg, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult,
-};
-
 use crate::error::ContractError;
-use crate::msg::{ArbiterResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{config, config_read, State};
+use crate::*;
 
-#[entry_point]
-pub fn instantiate(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: InstantiateMsg,
-) -> Result<Response, ContractError> {
-    let state = State {
-        arbiter: deps.api.addr_validate(&msg.arbiter)?,
-        recipient: deps.api.addr_validate(&msg.recipient)?,
-        source: info.sender,
-        end_height: msg.end_height,
-        end_time: msg.end_time,
-    };
+#[near_bindgen]
+impl Contract {
+    #[init]
+    pub fn instantiate(
+        arbiter: AccountId,
+        recipient: AccountId,
+        end_height: Option<BlockHeight>,
+        end_time: Option<BlockHeight>,
+    ) -> Self {
+        assert!(
+            !is_expired(end_height, end_time),
+            "{}",
+            ContractError::Expired {
+                end_height,
+                end_time
+            }
+        );
 
-    if state.is_expired(&env) {
-        return Err(ContractError::Expired {
-            end_height: msg.end_height,
-            end_time: msg.end_time,
-        });
+        Self {
+            arbiter,
+            recipient,
+            source: env::predecessor_account_id(),
+            end_height,
+            end_time,
+        }
     }
 
-    config(deps.storage).save(&state)?;
-    Ok(Response::default())
-}
+    pub fn try_approve(&self, quantity: Option<Balance>) -> PromiseOrValue<ContractError> {
+        if env::predecessor_account_id() != self.arbiter {
+            return PromiseOrValue::Value(ContractError::Unauthorized);
+        };
 
-#[entry_point]
-pub fn execute(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
-    let state = config_read(deps.storage).load()?;
-    match msg {
-        ExecuteMsg::Approve { quantity } => try_approve(deps, env, state, info, quantity),
-        ExecuteMsg::Refund {} => try_refund(deps, env, info, state),
-    }
-}
+        // throws error if state is expired
+        if is_expired(self.end_height, self.end_time) {
+            return PromiseOrValue::Value(ContractError::Expired {
+                end_height: self.end_height,
+                end_time: self.end_time,
+            });
+        }
 
-fn try_approve(
-    deps: DepsMut,
-    env: Env,
-    state: State,
-    info: MessageInfo,
-    quantity: Option<Vec<Coin>>,
-) -> Result<Response, ContractError> {
-    if info.sender != state.arbiter {
-        return Err(ContractError::Unauthorized {});
+        let amount = if let Some(quantity) = quantity {
+            quantity
+        } else {
+            // release everything
+            env::account_balance()
+        };
+
+        PromiseOrValue::Promise(send_tokens(self.recipient.clone(), amount))
     }
 
-    // throws error if state is expired
-    if state.is_expired(&env) {
-        return Err(ContractError::Expired {
-            end_height: state.end_height,
-            end_time: state.end_time,
-        });
+    pub fn try_refund(&self) -> PromiseOrValue<ContractError> {
+        // anyone can try to refund, as long as the contract is expired
+        if !is_expired(self.end_height, self.end_time) {
+            return PromiseOrValue::Value(ContractError::NotExpired);
+        }
+
+        let balance = env::account_balance();
+        PromiseOrValue::Promise(send_tokens(self.source.clone(), balance))
     }
 
-    let amount = if let Some(quantity) = quantity {
-        quantity
-    } else {
-        // release everything
-
-        // Querier guarantees to returns up-to-date data, including funds sent in this handle message
-        // https://github.com/CosmWasm/wasmd/blob/master/x/wasm/internal/keeper/keeper.go#L185-L192
-        deps.querier.query_all_balances(&env.contract.address)?
-    };
-
-    Ok(send_tokens(state.recipient, amount, "approve"))
-}
-
-fn try_refund(
-    deps: DepsMut,
-    env: Env,
-    _info: MessageInfo,
-    state: State,
-) -> Result<Response, ContractError> {
-    // anyone can try to refund, as long as the contract is expired
-    if !state.is_expired(&env) {
-        return Err(ContractError::NotExpired {});
+    pub fn query_arbiter(&self) -> AccountId {
+        self.arbiter.clone()
     }
-
-    // Querier guarantees to returns up-to-date data, including funds sent in this handle message
-    // https://github.com/CosmWasm/wasmd/blob/master/x/wasm/internal/keeper/keeper.go#L185-L192
-    let balance = deps.querier.query_all_balances(&env.contract.address)?;
-    Ok(send_tokens(state.source, balance, "refund"))
 }
 
 // this is a helper to move the tokens, so the business logic is easy to read
-fn send_tokens(to_address: Addr, amount: Vec<Coin>, action: &str) -> Response {
-    Response::new()
-        .add_message(BankMsg::Send {
-            to_address: to_address.clone().into(),
-            amount,
-        })
-        .add_attribute("action", action)
-        .add_attribute("to", to_address)
+fn send_tokens(to_address: AccountId, amount: Balance) -> Promise {
+    Promise::new(to_address).transfer(amount)
 }
 
-#[entry_point]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    match msg {
-        QueryMsg::Arbiter {} => to_binary(&query_arbiter(deps)?),
-    }
-}
-
-fn query_arbiter(deps: Deps) -> StdResult<ArbiterResponse> {
-    let state = config_read(deps.storage).load()?;
-    let addr = state.arbiter;
-    Ok(ArbiterResponse { arbiter: addr })
-}
-
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
-    use super::*;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, CosmosMsg, Timestamp};
+    use near_sdk::test_utils::{accounts, VMContextBuilder};
+    use near_sdk::{testing_env, ONE_NEAR};
 
-    fn init_msg_expire_by_height(height: u64) -> InstantiateMsg {
-        InstantiateMsg {
-            arbiter: String::from("verifies"),
-            recipient: String::from("benefits"),
-            end_height: Some(height),
-            end_time: None,
-        }
+    use super::*;
+
+    fn get_context(predecessor_account_id: AccountId) -> VMContextBuilder {
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id(accounts(0))
+            .signer_account_id(predecessor_account_id.clone())
+            .predecessor_account_id(predecessor_account_id);
+        builder
+    }
+
+    fn init_expire_by_height(height: u64) -> Contract {
+        Contract::instantiate(
+            AccountId::new_unchecked("verifies".to_string()),
+            AccountId::new_unchecked("benefits".to_string()),
+            Some(height),
+            None,
+        )
     }
 
     #[test]
     fn proper_initialization() {
-        let mut deps = mock_dependencies(&[]);
+        init_expire_by_height(1000);
 
-        let msg = init_msg_expire_by_height(1000);
-        let mut env = mock_env();
-        env.block.height = 876;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("creator", &coins(1000, "earth"));
+        let context = get_context(accounts(1));
+        testing_env!(context.build());
 
-        let res = instantiate(deps.as_mut(), env, info, msg).unwrap();
-        assert_eq!(0, res.messages.len());
-
-        // it worked, let's query the state
-        let state = config_read(&mut deps.storage).load().unwrap();
-        assert_eq!(
-            state,
-            State {
-                arbiter: Addr::unchecked("verifies"),
-                recipient: Addr::unchecked("benefits"),
-                source: Addr::unchecked("creator"),
-                end_height: Some(1000),
-                end_time: None,
-            }
+        Contract::instantiate(
+            AccountId::new_unchecked("verifies".to_string()),
+            AccountId::new_unchecked("benefits".to_string()),
+            Some(1000),
+            None,
         );
     }
 
     #[test]
+    #[should_panic(expected = "Escrow expired (end_height 1000 end_time 0)")]
     fn cannot_initialize_expired() {
-        let mut deps = mock_dependencies(&[]);
+        let mut context = get_context(accounts(1));
+        context.block_index(1001);
+        testing_env!(context.build());
 
-        let msg = init_msg_expire_by_height(1000);
-        let mut env = mock_env();
-        env.block.height = 1001;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("creator", &coins(1000, "earth"));
-
-        let res = instantiate(deps.as_mut(), env, info, msg);
-        match res.unwrap_err() {
-            ContractError::Expired { .. } => {}
-            e => panic!("unexpected error: {:?}", e),
-        }
+        init_expire_by_height(1000);
     }
 
     #[test]
     fn init_and_query() {
-        let mut deps = mock_dependencies(&[]);
-
-        let arbiter = Addr::unchecked("arbiters");
-        let recipient = Addr::unchecked("receives");
-        let creator = Addr::unchecked("creates");
-        let msg = InstantiateMsg {
-            arbiter: arbiter.clone().into(),
-            recipient: recipient.into(),
-            end_height: None,
-            end_time: None,
-        };
-        let mut env = mock_env();
-        env.block.height = 876;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info(creator.as_str(), &[]);
-        let res = instantiate(deps.as_mut(), env, info, msg).unwrap();
-        assert_eq!(0, res.messages.len());
-
-        // now let's query
-        let query_response = query_arbiter(deps.as_ref()).unwrap();
-        assert_eq!(query_response.arbiter, arbiter);
+        let state = init_expire_by_height(1000);
+        assert_eq!(state.query_arbiter().to_string(), "verifies");
     }
 
     #[test]
     fn execute_approve() {
-        let mut deps = mock_dependencies(&[]);
+        let initial_balance = env::account_balance();
+        let mut context = get_context(accounts(1));
 
-        // initialize the store
-        let init_amount = coins(1000, "earth");
-        let msg = init_msg_expire_by_height(1000);
-        let mut env = mock_env();
-        env.block.height = 876;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("creator", &init_amount);
-        let contract_addr = env.clone().contract.address;
-        let init_res = instantiate(deps.as_mut(), env, info, msg).unwrap();
-        assert_eq!(0, init_res.messages.len());
+        testing_env!(context.attached_deposit(1000 * ONE_NEAR).build());
+        let state = init_expire_by_height(1000);
 
         // balance changed in init
-        deps.querier.update_balance(&contract_addr, init_amount);
+        testing_env!(context
+            .predecessor_account_id(AccountId::new_unchecked("creator".to_string()))
+            .block_index(876)
+            .build());
+
+        assert_eq!(env::account_balance(), initial_balance + 1000 * ONE_NEAR);
 
         // beneficiary cannot release it
-        let msg = ExecuteMsg::Approve { quantity: None };
-        let mut env = mock_env();
-        env.block.height = 900;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("beneficiary", &[]);
-        let execute_res = execute(deps.as_mut(), env, info, msg.clone());
-        match execute_res.unwrap_err() {
-            ContractError::Unauthorized { .. } => {}
-            e => panic!("unexpected error: {:?}", e),
+        match state.try_approve(None) {
+            PromiseOrValue::Value(value) => assert_eq!(value, ContractError::Unauthorized),
+            PromiseOrValue::Promise(_) => panic!("unexpected error"),
         }
 
         // verifier cannot release it when expired
-        let mut env = mock_env();
-        env.block.height = 1100;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("verifies", &[]);
-        let execute_res = execute(deps.as_mut(), env, info, msg.clone());
-        match execute_res.unwrap_err() {
-            ContractError::Expired { .. } => {}
-            e => panic!("unexpected error: {:?}", e),
+        testing_env!(context
+            .predecessor_account_id(AccountId::new_unchecked("verifies".to_string()))
+            .block_index(1100)
+            .build());
+
+        match state.try_approve(None) {
+            PromiseOrValue::Value(value) => assert_eq!(
+                value,
+                ContractError::Expired {
+                    end_height: Some(1000),
+                    end_time: None,
+                }
+            ),
+            PromiseOrValue::Promise(_) => panic!("unexpected error"),
         }
 
-        // complete release by verfier, before expiration
-        let mut env = mock_env();
-        env.block.height = 999;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("verifies", &[]);
-        let execute_res = execute(deps.as_mut(), env, info, msg.clone()).unwrap();
-        assert_eq!(1, execute_res.messages.len());
-        let msg = execute_res.messages.get(0).expect("no message");
-        assert_eq!(
-            msg.msg,
-            CosmosMsg::Bank(BankMsg::Send {
-                to_address: "benefits".into(),
-                amount: coins(1000, "earth"),
-            })
-        );
+        // partial release by verifier, before expiration
+        testing_env!(context
+            .predecessor_account_id(AccountId::new_unchecked("verifies".to_string()))
+            .block_index(999)
+            .build());
 
-        // partial release by verfier, before expiration
-        let partial_msg = ExecuteMsg::Approve {
-            quantity: Some(coins(500, "earth")),
-        };
-        let mut env = mock_env();
-        env.block.height = 999;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("verifies", &[]);
-        let execute_res = execute(deps.as_mut(), env, info, partial_msg).unwrap();
-        assert_eq!(1, execute_res.messages.len());
-        let msg = execute_res.messages.get(0).expect("no message");
-        assert_eq!(
-            msg.msg,
-            CosmosMsg::Bank(BankMsg::Send {
-                to_address: "benefits".into(),
-                amount: coins(500, "earth"),
-            })
-        );
+        match state.try_approve(Some(400 * ONE_NEAR)) {
+            PromiseOrValue::Value(e) => panic!("unexpected error {}", e),
+            PromiseOrValue::Promise(..) => {}
+        }
+
+        assert_eq!(env::account_balance(), initial_balance + 600 * ONE_NEAR);
+
+        // complete release by verifier, before expiration
+        match state.try_approve(None) {
+            PromiseOrValue::Value(e) => panic!("unexpected error {}", e),
+            PromiseOrValue::Promise(..) => {}
+        }
+
+        assert_eq!(env::account_balance(), 0);
     }
 
     #[test]
     fn handle_refund() {
-        let mut deps = mock_dependencies(&[]);
+        let initial_balance = env::account_balance();
+        let mut context = get_context(accounts(1));
 
-        // initialize the store
-        let init_amount = coins(1000, "earth");
-        let msg = init_msg_expire_by_height(1000);
-        let mut env = mock_env();
-        env.block.height = 876;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("creator", &init_amount);
-        let contract_addr = env.clone().contract.address;
-        let init_res = instantiate(deps.as_mut(), env, info, msg).unwrap();
-        assert_eq!(0, init_res.messages.len());
+        testing_env!(context.attached_deposit(1000 * ONE_NEAR).build());
+        let state = init_expire_by_height(1000);
 
         // balance changed in init
-        deps.querier.update_balance(&contract_addr, init_amount);
+        testing_env!(context
+            .predecessor_account_id(AccountId::new_unchecked("creator".to_string()))
+            .block_index(876)
+            .build());
+
+        assert_eq!(env::account_balance(), initial_balance + 1000 * ONE_NEAR);
 
         // cannot release when unexpired (height < end_height)
-        let msg = ExecuteMsg::Refund {};
-        let mut env = mock_env();
-        env.block.height = 800;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("anybody", &[]);
-        let execute_res = execute(deps.as_mut(), env, info, msg.clone());
-        match execute_res.unwrap_err() {
-            ContractError::NotExpired { .. } => {}
-            e => panic!("unexpected error: {:?}", e),
+        testing_env!(context
+            .predecessor_account_id(AccountId::new_unchecked("anybody".to_string()))
+            .block_index(800)
+            .build());
+
+        match state.try_refund() {
+            PromiseOrValue::Value(value) => assert_eq!(value, ContractError::NotExpired),
+            PromiseOrValue::Promise(_) => panic!("unexpected error"),
         }
 
         // cannot release when unexpired (height == end_height)
-        let msg = ExecuteMsg::Refund {};
-        let mut env = mock_env();
-        env.block.height = 1000;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("anybody", &[]);
-        let execute_res = execute(deps.as_mut(), env, info, msg.clone());
-        match execute_res.unwrap_err() {
-            ContractError::NotExpired { .. } => {}
-            e => panic!("unexpected error: {:?}", e),
+        testing_env!(context
+            .predecessor_account_id(AccountId::new_unchecked("anybody".to_string()))
+            .block_index(1000)
+            .build());
+
+        match state.try_refund() {
+            PromiseOrValue::Value(value) => assert_eq!(value, ContractError::NotExpired),
+            PromiseOrValue::Promise(_) => panic!("unexpected error"),
         }
 
         // anyone can release after expiration
-        let mut env = mock_env();
-        env.block.height = 1001;
-        env.block.time = Timestamp::from_seconds(0);
-        let info = mock_info("anybody", &[]);
-        let execute_res = execute(deps.as_mut(), env, info, msg.clone()).unwrap();
-        assert_eq!(1, execute_res.messages.len());
-        let msg = execute_res.messages.get(0).expect("no message");
-        assert_eq!(
-            msg.msg,
-            CosmosMsg::Bank(BankMsg::Send {
-                to_address: "creator".into(),
-                amount: coins(1000, "earth"),
-            })
-        );
+        testing_env!(context
+            .predecessor_account_id(AccountId::new_unchecked("anybody".to_string()))
+            .block_index(1001)
+            .build());
+
+        match state.try_refund() {
+            PromiseOrValue::Value(e) => panic!("unexpected error {}", e),
+            PromiseOrValue::Promise(..) => {}
+        }
+
+        assert_eq!(env::account_balance(), 0);
     }
 }

@@ -1,38 +1,22 @@
 [package]
-name = "cw-escrow"
-version = "0.10.0"
-authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+name = "near-cw-escrow"
+version = "0.1.0"
+authors = ["Vadim Ilin <vadim@near.org", "Ethan Frey <ethanfrey@users.noreply.github.com>"]
 edition = "2018"
 license = "Apache-2.0"
-description = "Simple CosmWasm contract for an escrow with arbiter and timeout"
-repository = "https://github.com/CosmWasm/cosmwasm-examples"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+publish = false
 
 [lib]
-crate-type = ["cdylib", "rlib"]
-
-[profile.release]
-opt-level = 3
-debug = false
-rpath = false
-lto = true
-debug-assertions = false
-codegen-units = 1
-panic = 'abort'
-incremental = false
-overflow-checks = true
-
-[features]
-backtraces = ["cosmwasm-std/backtraces"]
+crate-type = ["cdylib"]
 
 [dependencies]
-cosmwasm-std = "1.0.0-beta"
-cosmwasm-storage = "1.0.0-beta"
-schemars = "0.8"
-thiserror = "1.0.23"
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+near-sdk = "=4.0.0-pre.8"
 
-[dev-dependencies]
-cosmwasm-vm = "1.0.0-beta"
-cosmwasm-schema = "1.0.0-beta"
+[profile.release]
+codegen-units = 1
+# Tell `rustc` to optimize for small code size.
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

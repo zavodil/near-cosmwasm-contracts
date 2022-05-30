@@ -1,20 +1,34 @@
-use cosmwasm_std::StdError;
-use thiserror::Error;
+use near_sdk::serde::Serialize;
 
-#[derive(Error, Debug)]
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result;
+
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(crate = "near_sdk::serde")]
 pub enum ContractError {
-    #[error("{0}")]
-    Std(#[from] StdError),
-
-    #[error("Unauthorized")]
-    Unauthorized {},
-
-    #[error("Escrow expired (end_height {end_height:?} end_time {end_time:?})")]
+    Unauthorized,
     Expired {
         end_height: Option<u64>,
         end_time: Option<u64>,
     },
+    NotExpired,
+}
 
-    #[error("Escrow not expired")]
-    NotExpired {},
+impl Display for ContractError {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        match self {
+            ContractError::Unauthorized => write!(f, "Unauthorized"),
+            ContractError::Expired {
+                end_height,
+                end_time,
+            } => write!(
+                f,
+                "Escrow expired (end_height {} end_time {})",
+                end_height.unwrap_or_default(),
+                end_time.unwrap_or_default()
+            ),
+            ContractError::NotExpired => write!(f, "NotExpired"),
+        }
+    }
 }
