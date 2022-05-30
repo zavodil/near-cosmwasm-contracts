@@ -12,12 +12,12 @@ Escrow Contract from [CosmWasm examples catalog](https://github.com/InterWasm/cw
 <tr>
 <td align="center"> 
 
-###CosmWasm
+**CosmWasm**
 
 </td>
 <td align="center">
 
-###NEAR
+**NEAR**
 
 </td>
 </tr>
