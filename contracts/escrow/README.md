@@ -239,8 +239,8 @@ pub fn try_refund(&self) -> Promise {
 	send_tokens(self.source.clone(), balance)
 }
 
-pub fn try_approve(&self, 
-				   quantity: Option<Balance>) 
+pub fn try_approve(&self,
+                   quantity: Option<Balance>)
 	-> Promise {
 	let amount = 
 		if let Some(quantity) = quantity {
@@ -298,20 +298,20 @@ Create a function with macros `#[init]`, hande function parameters and set the c
 
 ```rust 
 #[init]
-	pub fn instantiate(
-		arbiter: AccountId,
-		recipient: AccountId,
-		end_height: Option<BlockHeight>,
-		end_time: Option<BlockHeight>,
-	) -> Self {
-		Self {
-			arbiter,
-			recipient,
-			source: env::predecessor_account_id(),
-			end_height,
-			end_time,
-		}
-	}
+pub fn instantiate(
+    arbiter: AccountId,
+    recipient: AccountId,
+    end_height: Option<BlockHeight>,
+    end_time: Option<BlockHeight>,
+) -> Self {
+    Self {
+        arbiter,
+        recipient,
+        source: env::predecessor_account_id(),
+        end_height,
+        end_time,
+    }
+}
 
 ```
 </td>
