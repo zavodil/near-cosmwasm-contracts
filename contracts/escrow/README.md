@@ -71,24 +71,28 @@ use serde::{Deserialize, Serialize};
 static CONFIG_KEY: &[u8] = b"config";
 
 // set object with the `arbiter` field 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Clone, 
+    Debug, PartialEq, JsonSchema)]
 pub struct State {
     pub arbiter: Addr,
 }
 
 // output `arbiter` field
 #[entry_point]
-pub fn query_arbiter(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<ArbiterResponse> {
+pub fn query_arbiter(deps: Deps, _env: Env, msg: QueryMsg) 
+    -> StdResult<ArbiterResponse> {
     let state = config_read(deps.storage).load()?;
     let addr = state.arbiter;
     Ok(ArbiterResponse { arbiter: addr })
 }
 
-pub fn config(storage: &mut dyn Storage) -> Singleton<State> {
+pub fn config(storage: &mut dyn Storage) 
+    -> Singleton<State> {
     singleton(storage, CONFIG_KEY)
 }
 
-pub fn config_read(storage: &dyn Storage) -> ReadonlySingleton<State> {
+pub fn config_read(storage: &dyn Storage) 
+    -> ReadonlySingleton<State> {
     singleton_read(storage, CONFIG_KEY)
 }
 
@@ -132,7 +136,6 @@ Specify message templates and handle function parameters:
 Parse `msg` and run corresponding action.
 
 ```rust
-
 // set message structure
 pub enum ExecuteMsg {
     Approve {
@@ -152,8 +155,10 @@ pub fn execute(
     let state = config_read(deps.storage).load()?;
     // parse message
     match msg {
-        ExecuteMsg::Refund {} => try_refund(deps, env, info, state),
-        ExecuteMsg::Approve { quantity } => try_approve(deps, env, state, info, quantity),
+        ExecuteMsg::Refund {} => 
+            try_refund(deps, env, info, state),
+        ExecuteMsg::Approve { quantity } => 
+            try_approve(deps, env, state, info, quantity),
     }
 }
 
@@ -164,7 +169,8 @@ fn try_refund(
     _info: MessageInfo,
     state: State,
 ) -> Result<Response, ContractError> {
-    let balance = deps.querier.query_all_balances(&env.contract.address)?;
+    let balance = deps.querier
+        .query_all_balances(&env.contract.address)?;
     Ok(send_tokens(state.source, balance, "refund"))
 }
 
@@ -179,7 +185,8 @@ fn try_approve(
         quantity
     } else {
         // release everything
-        deps.querier.query_all_balances(&env.contract.address)?
+        deps.querier
+            .query_all_balances(&env.contract.address)?
     };
 
     Ok(send_tokens(state.recipient, amount, "approve"))
@@ -192,14 +199,14 @@ fn try_approve(
 Create a public function, perform actions needed.
 
 ```rust
-
 // execute actions
 pub fn try_refund(&self) -> Promise {
     let balance = env::account_balance();
     send_tokens(self.source.clone(), balance)
 }
 
-pub fn try_approve(&self, quantity: Option<Balance>) -> Promise {
+pub fn try_approve(&self, quantity: Option<Balance>) 
+    -> Promise {
     let amount = if let Some(quantity) = quantity {
         quantity
     } else {
@@ -209,8 +216,8 @@ pub fn try_approve(&self, quantity: Option<Balance>) -> Promise {
 
     send_tokens(self.recipient.clone(), amount)
 }
-
 ```
+
 </td>
 </tr>
 
@@ -221,7 +228,6 @@ pub fn try_approve(&self, quantity: Option<Balance>) -> Promise {
 Create `instantiate()` function as the first entry-point, introduce a new variable named `state` of type `State`, fill it with the function parameters and save.
 
 ```rust 
-
 #[entry_point]
 pub fn instantiate(
     deps: DepsMut,
@@ -230,8 +236,10 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let state = State {
-        arbiter: deps.api.addr_validate(&msg.arbiter)?,
-        recipient: deps.api.addr_validate(&msg.recipient)?,
+        arbiter: deps.api
+            .addr_validate(&msg.arbiter)?,
+        recipient: deps.api
+            .addr_validate(&msg.recipient)?,
         source: info.sender,
         end_height: msg.end_height,
         end_time: msg.end_time,
@@ -240,7 +248,6 @@ pub fn instantiate(
     config(deps.storage).save(&state)?;
     Ok(Response::default())
 }
-
 ```
 
 </td>
@@ -249,7 +256,6 @@ pub fn instantiate(
 Create a function with macros `#[init]`, hande function parameters and set the contract state.
 
 ```rust 
-
 #[init]
     pub fn instantiate(
         arbiter: AccountId,
