@@ -10,14 +10,26 @@ Escrow Contract from [CosmWasm examples catalog](https://github.com/InterWasm/cw
 
 <table>
 <tr>
-<td> Task </td> <td> CosmWasm </td> <td> NEAR </td>
-</tr>
-<tr>
-<td>
+<td align="center"> 
 
-Specify public entry point
+###CosmWasm
 
 </td>
+<td align="center">
+
+###NEAR
+
+</td>
+</tr>
+<tr>
+<td colspan="2" align="center">
+
+**Specify public entry point**
+
+</td>
+</tr>
+
+<tr>
 <td> 
 
 Place macros ```#[entry_point]``` before every function 
@@ -26,12 +38,12 @@ Place macros ```#[entry_point]``` before every function
 ```rust
 #[entry_point]
 pub fn execute1() {
-    ...
+	...
 }
 
 #[entry_point]
 pub fn execute2() {
-    ...
+	...
 }
 ```
 
@@ -44,12 +56,12 @@ Specify function as public after [#[near_binden]](https://www.near-sdk.io/contra
 ```rust
 #[near_bindgen]
 impl Contract {
-    pub fn execute1() {
-        ...
-    }
-    pub fn execute2() {
-        ...
-    }
+	pub fn execute1() {
+		...
+	}
+	pub fn execute2() {
+		...
+	}
 }
 ```
 
@@ -58,7 +70,13 @@ impl Contract {
 </tr>
 
 <tr>
-<td>Read/write contract state</td>
+<td colspan="2" align="center">
+
+**Read/write contract state**
+
+</td>
+</tr>
+<tr valign="top">
 <td>
 
 Import ``schemars::JsonSchema`` to work with JSON objects.
@@ -72,28 +90,30 @@ static CONFIG_KEY: &[u8] = b"config";
 
 // set object with the `arbiter` field 
 #[derive(Serialize, Deserialize, Clone, 
-    Debug, PartialEq, JsonSchema)]
+	Debug, PartialEq, JsonSchema)]
 pub struct State {
-    pub arbiter: Addr,
+	pub arbiter: Addr,
 }
 
 // output `arbiter` field
 #[entry_point]
-pub fn query_arbiter(deps: Deps, _env: Env, msg: QueryMsg) 
-    -> StdResult<ArbiterResponse> {
-    let state = config_read(deps.storage).load()?;
-    let addr = state.arbiter;
-    Ok(ArbiterResponse { arbiter: addr })
+pub fn query_arbiter(deps: Deps, _env: Env,
+					 msg: QueryMsg) 
+	-> StdResult<ArbiterResponse> {
+	let state = 
+		config_read(deps.storage).load()?;
+	let addr = state.arbiter;
+	Ok(ArbiterResponse { arbiter: addr })
 }
 
 pub fn config(storage: &mut dyn Storage) 
-    -> Singleton<State> {
-    singleton(storage, CONFIG_KEY)
+	-> Singleton<State> {
+	singleton(storage, CONFIG_KEY)
 }
 
 pub fn config_read(storage: &dyn Storage) 
-    -> ReadonlySingleton<State> {
-    singleton_read(storage, CONFIG_KEY)
+	-> ReadonlySingleton<State> {
+	singleton_read(storage, CONFIG_KEY)
 }
 
 ```
@@ -104,18 +124,19 @@ pub fn config_read(storage: &dyn Storage)
 Import ``near_sdk::borsh`` to work with JSON objects. Create public structure containing objects you need, initialize it by default or with the constructor. Access with `self` parameter. 
 
 ```rust 
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::borsh::{self, 
+	BorshDeserialize, BorshSerialize};
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 // set object with the `arbiter` field 
 pub struct Contract {
-    arbiter: AccountId,
+	arbiter: AccountId,
 }
 
 // output `arbiter` field
 pub fn query_arbiter(&self) -> AccountId {
-    self.arbiter.clone()
+	self.arbiter.clone()
 }
 
 ```
@@ -124,7 +145,13 @@ pub fn query_arbiter(&self) -> AccountId {
 </tr>
 
 <tr valign="top">
-<td>Run functions with parameters</td>
+<td colspan="2" align="center">
+
+**Run functions with parameters**
+
+</td>
+</tr>
+<tr valign="top">
 <td>
 Specify message templates and handle function parameters:
 
@@ -138,83 +165,92 @@ Parse `msg` and run corresponding action.
 ```rust
 // set message structure
 pub enum ExecuteMsg {
-    Approve {
-        quantity: Option<Vec<Coin>>,
-    },
-    Refund {},
+	Approve {
+		quantity: Option<Vec<Coin>>,
+	},
+	Refund {},
 }
 
 // create an entry point
 #[entry_point]
 pub fn execute(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: ExecuteMsg,
+	deps: DepsMut,
+	env: Env,
+	info: MessageInfo,
+	msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    let state = config_read(deps.storage).load()?;
-    // parse message
-    match msg {
-        ExecuteMsg::Refund {} => 
-            try_refund(deps, env, info, state),
-        ExecuteMsg::Approve { quantity } => 
-            try_approve(deps, env, state, info, quantity),
-    }
+	let state = 
+		config_read(deps.storage).load()?;
+	// parse message
+	match msg {
+		ExecuteMsg::Refund {} => 
+			try_refund(deps, env, 
+					   info, state),
+		ExecuteMsg::Approve {quantity} => 
+			try_approve(deps, env, state, 
+				info, quantity),
+	}
 }
 
 // execute actions with given parameters
 fn try_refund(
-    deps: DepsMut,
-    env: Env,
-    _info: MessageInfo,
-    state: State,
+	deps: DepsMut,
+	env: Env,
+	_info: MessageInfo,
+	state: State,
 ) -> Result<Response, ContractError> {
-    let balance = deps.querier
-        .query_all_balances(&env.contract.address)?;
-    Ok(send_tokens(state.source, balance, "refund"))
+	let balance = deps.querier
+		.query_all_balances(
+			&env.contract.address)?;
+	Ok(send_tokens(state.source, 
+				   balance, "refund"))
 }
 
 fn try_approve(
-    deps: DepsMut,
-    env: Env,
-    state: State,
-    info: MessageInfo,
-    quantity: Option<Vec<Coin>>,
+	deps: DepsMut,
+	env: Env,
+	state: State,
+	info: MessageInfo,
+	quantity: Option<Vec<Coin>>,
 ) -> Result<Response, ContractError> {
-    let amount = if let Some(quantity) = quantity {
-        quantity
-    } else {
-        // release everything
-        deps.querier
-            .query_all_balances(&env.contract.address)?
-    };
+	let amount = 
+		if let Some(quantity) = quantity {
+			quantity
+		} else {
+			// release everything
+			deps.querier
+			.query_all_balances(
+				&env.contract.address)?
+	};
 
-    Ok(send_tokens(state.recipient, amount, "approve"))
+	Ok(send_tokens(state.recipient, 
+				   amount, "approve"))
 }
 ```
 
 </td>
 <td>
-
 Create a public function, perform actions needed.
 
 ```rust
 // execute actions
 pub fn try_refund(&self) -> Promise {
-    let balance = env::account_balance();
-    send_tokens(self.source.clone(), balance)
+	let balance = env::account_balance();
+	send_tokens(self.source.clone(), balance)
 }
 
-pub fn try_approve(&self, quantity: Option<Balance>) 
-    -> Promise {
-    let amount = if let Some(quantity) = quantity {
-        quantity
-    } else {
-        // release everything
-        env::account_balance()
-    };
+pub fn try_approve(&self, 
+				   quantity: Option<Balance>) 
+	-> Promise {
+	let amount = 
+		if let Some(quantity) = quantity {
+			quantity
+		} else {
+			// release everything
+			env::account_balance()
+		};
 
-    send_tokens(self.recipient.clone(), amount)
+	send_tokens(self.recipient.clone(), amount)
 }
 ```
 
@@ -222,7 +258,12 @@ pub fn try_approve(&self, quantity: Option<Balance>)
 </tr>
 
 <tr valign="top">
-<td>Initialize contract state</td>
+<td colspan="2" align="center">
+
+**Initialize contract state**
+</td>
+</tr>
+<tr valign="top">
 <td>
 
 Create `instantiate()` function as the first entry-point, introduce a new variable named `state` of type `State`, fill it with the function parameters and save.
@@ -230,23 +271,23 @@ Create `instantiate()` function as the first entry-point, introduce a new variab
 ```rust 
 #[entry_point]
 pub fn instantiate(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: InstantiateMsg,
+	deps: DepsMut,
+	env: Env,
+	info: MessageInfo,
+	msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let state = State {
-        arbiter: deps.api
-            .addr_validate(&msg.arbiter)?,
-        recipient: deps.api
-            .addr_validate(&msg.recipient)?,
-        source: info.sender,
-        end_height: msg.end_height,
-        end_time: msg.end_time,
-    };
+	let state = State {
+		arbiter: deps.api
+			.addr_validate(&msg.arbiter)?,
+		recipient: deps.api
+			.addr_validate(&msg.recipient)?,
+		source: info.sender,
+		end_height: msg.end_height,
+		end_time: msg.end_time,
+	};
 
-    config(deps.storage).save(&state)?;
-    Ok(Response::default())
+	config(deps.storage).save(&state)?;
+	Ok(Response::default())
 }
 ```
 
@@ -257,20 +298,20 @@ Create a function with macros `#[init]`, hande function parameters and set the c
 
 ```rust 
 #[init]
-    pub fn instantiate(
-        arbiter: AccountId,
-        recipient: AccountId,
-        end_height: Option<BlockHeight>,
-        end_time: Option<BlockHeight>,
-    ) -> Self {
-        Self {
-            arbiter,
-            recipient,
-            source: env::predecessor_account_id(),
-            end_height,
-            end_time,
-        }
-    }
+	pub fn instantiate(
+		arbiter: AccountId,
+		recipient: AccountId,
+		end_height: Option<BlockHeight>,
+		end_time: Option<BlockHeight>,
+	) -> Self {
+		Self {
+			arbiter,
+			recipient,
+			source: env::predecessor_account_id(),
+			end_height,
+			end_time,
+		}
+	}
 
 ```
 </td>
