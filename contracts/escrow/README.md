@@ -1,3 +1,4 @@
+![cosmwasm-near](https://user-images.githubusercontent.com/38926321/171194185-c3abea0d-d476-4468-ad63-848690aa5200.png)
 Escrow Contract from [CosmWasm examples catalog](https://github.com/InterWasm/cw-contracts/tree/main/contracts/escrow) built on [NEAR Blockchain](https://near.org).
 
 **What do NEAR and CosmWasm Runtimes have in common?**
@@ -357,3 +358,6 @@ deployed escrow is using the proper wasm code.
 - NEAR-native examples: https://near.dev (contract + UI)
 - Dev documentation: https://docs.near.org/
 - Developer Office Hours https://near.org/office-hours/
+  
+## Rough overview on [contract.rs](https://github.com/zavodil/near-cosmwasm-contracts/blob/main/contracts/escrow/src/contract.rs) updates. 
+  ![cosmwasm-near](https://user-images.githubusercontent.com/38926321/171194512-d74e1718-dee7-4596-ac6f-c3ea78d09839.png)
