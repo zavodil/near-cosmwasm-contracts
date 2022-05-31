@@ -1,4 +1,3 @@
-![cosmwasm-near](https://user-images.githubusercontent.com/38926321/171194185-c3abea0d-d476-4468-ad63-848690aa5200.png)
 Escrow Contract from [CosmWasm examples catalog](https://github.com/InterWasm/cw-contracts/tree/main/contracts/escrow) built on [NEAR Blockchain](https://near.org).
 
 **What do NEAR and CosmWasm Runtimes have in common?**
