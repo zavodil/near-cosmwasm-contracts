@@ -121,7 +121,7 @@ pub fn config_read(storage: &dyn Storage)
 </td>
 <td valign="top">
 
-Import ``near_sdk::borsh`` to work with JSON objects. Create public structure containing objects you need, initialize it by default or with the constructor. Access with `self` parameter. 
+Create public structure containing objects you need, initialize it by default or with the constructor. Access with `self` parameter. 
 
 ```rust 
 use near_sdk::borsh::{self, 
